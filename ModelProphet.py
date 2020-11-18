@@ -1,6 +1,10 @@
 import matplotlib.pyplot as plt
+import pandas as pd
+from fbprophet import Prophet
 from fbprophet.plot import add_changepoints_to_plot
+from fbprophet.plot import seasonality_plot_df
 import datetime
+
 
 class ModelProphet():
     def __init__(self, input_df_holidays=None, holiday_country='US'):
@@ -10,7 +14,7 @@ class ModelProphet():
         #     self.df = pd.read_csv(ruleFilePath)
         
         if input_df_holidays is not None:
-            self.holidays = input_df_holidays
+            
             # init model
             self.model = Prophet(
                 interval_width=0.95,
@@ -19,7 +23,7 @@ class ModelProphet():
                 weekly_seasonality=True,
                 daily_seasonality=True, 
                 seasonality_mode='multiplicative',
-                holidays=holidays,
+                holidays=input_df_holidays,
                 #changepoint_range=0.8
                 )
         else:
@@ -77,3 +81,63 @@ class ModelProphet():
 
     def return_plot_components(self):
         return self.model.plot_components(self.forecast_df)
+
+
+    def extract_trend(self, includeBound=False):
+
+        if includeBound == True:
+            return self.forecast_df[['ds', 'trend', 'trend_lower', 'trend_upper']]
+        else:
+            return self.forecast_df[['ds', 'trend']]
+
+    def extract_seasonality(self, name='weekly'):
+        
+        if name == 'daily':
+            weekly_start = 0
+            # Compute weekly seasonality for a Sun-Sat sequence of dates.
+            datetimes = (pd.date_range(start='2017-01-01', periods=4*24, freq='15T'))
+            df_w = seasonality_plot_df(self.model, datetimes)
+            seas = self.model.predict_seasonal_components(df_w)
+            time_name = datetimes.time
+            # day_name = days.day_name()
+
+            df_seasonality = pd.DataFrame({'time': time_name,
+                                        'daily': seas['daily'],
+                                        'daily_lower': seas['daily_lower'],
+                                        'daily_upper': seas['daily_upper']
+                                        })
+        elif name == 'weekly':
+            weekly_start = 0
+            # Compute weekly seasonality for a Sun-Sat sequence of dates.
+            days = (pd.date_range(start='2017-01-01', periods=7) +
+                    pd.Timedelta(days=weekly_start))
+            df_w = seasonality_plot_df(self.model, days)
+            seas = self.model.predict_seasonal_components(df_w)
+            day_of_week = days.day_name()
+
+            df_seasonality = pd.DataFrame({'day_of_week': day_of_week,
+                                        'weekly': seas['weekly'],
+                                        'weekly_lower': seas['weekly_lower'],
+                                        'weekly_upper': seas['weekly_upper']
+                                        })
+            
+        elif name == 'yearly':
+            yearly_start = 0
+            # Compute weekly seasonality for a Sun-Sat sequence of dates.
+            days = (pd.date_range(start='2017-01-01', periods=365) +
+                    pd.Timedelta(days=yearly_start))
+            df_w = seasonality_plot_df(self.model, days)
+            seas = self.model.predict_seasonal_components(df_w)
+            day_of_week = days.day_name()
+            month_name = days.month_name()
+            day_of_year = days.dayofyear
+
+            df_seasonality = pd.DataFrame({'day_of_year': day_of_year,
+                                        'month_name': month_name,
+                                        'day_of_week': day_of_week,
+                                        'yearly': seas['yearly'],
+                                        'yearly_lower': seas['yearly_lower'],
+                                        'yearly_upper': seas['yearly_upper']
+                                        })
+
+        return df_seasonality

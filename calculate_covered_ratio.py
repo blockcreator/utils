@@ -21,7 +21,7 @@ def calculate_covered_ratio(input_df,
     df_prob_DoW = df[['DoW', 'value']].groupby(['DoW']).mean()
 
     df_covered_DoW = df_interest[['DoW', 'value']].groupby(['DoW']).count()
-    df_covered_DoW['value'] = df_covered['value']/len(df_interest)
+    df_covered_DoW['value'] = df_covered_DoW['value']/len(df_interest)
 
     df_prob_Time = df[['Time', 'value']].groupby(['Time']).mean()
 
